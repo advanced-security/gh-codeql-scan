@@ -2,15 +2,22 @@
 set -eu
 HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
-# CodeQL
-export CODEQL_DATABASES="$HERE/.databases"
-export CODEQL_RESULTS="$HERE/.results"
+# >> CodeQL
+export CODEQL_DATABASES="$PWD/.codeql-databases"
+# Override the database if it exists
+export CODEQL_DATABASES_OVERRIDE=1
+export CODEQL_RESULTS="$PWD/.codeql-results"
 # `code-scanning` (default), `security-extended`, or `security-and-quality`
 export CODEQL_SUITE="code-scanning"
 export CODEQL_TRACING=1
+export CODEQL_LANGUAGES=
 
-# GitHub
+# >> GitHub
 export GITHUB_INSTANCE="${GITHUB_INSTANCE:https://github.com}"
+# upload by default
+export GITHUB_UPLOAD=1
+# do not auto-detect languages 
+export GIHTUB_AUTO_DETECT=0
 
 # Git Based metadata
 export GIT_HASH=$(git rev-parse HEAD)
@@ -90,13 +97,13 @@ if [ $MODE = "init" ]; then
 elif [ $MODE = "analysis" ]; then
     echo "Running Analysis mode..."
     
-    $HERE/bin/codeql-analysis
+    $HERE/bin/codeql-analyze
 
 elif [ $MODE = "scan" ]; then
     echo "Running Scan mode..."
 
     $HERE/bin/codeql-init --auto-detect
-    $HERE/bin/codeql-analysis
+    $HERE/bin/codeql-analyze
 
 else
     echo "ERROR: Mode is not supported"

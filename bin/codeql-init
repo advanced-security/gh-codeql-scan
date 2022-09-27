@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-AUTO_DETECT=0
-CODEQL_TRACING=1
-CODEQL_LANGUAGES=
-
 for i in "$@"; do
   case $i in
     --auto-detect)
@@ -39,10 +35,8 @@ if [ -z $GITHUB_REPOSITORY ]; then
     exit 1
 fi
 
-echo "GitHub Repository :: $GITHUB_REPOSITORY"
-echo "GitHub Ref :: $GIT_REF"
 
-
+# auto-detect languages
 if [[ "$AUTO_DETECT" = "1" ]]; then
     if ! command -v gh &> /dev/null ; then
         echo "GitHub CLI is not installed and can't auto-detect languages"
@@ -52,6 +46,8 @@ if [[ "$AUTO_DETECT" = "1" ]]; then
         echo "GitHub Access Token is not present and is required for language detection"
         exit 1
     fi
+
+    echo "Detecting Repository Language(s)"
     # Get the data from GitHub
     # https://github.com/advanced-security/advanced-security-material/blob/main/code-scanning-workflows/reusable_code_scanning-00.yml#L19-L27
     # JSON array

@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-GITHUB_UPLOAD=1
-
 for i in "$@"; do
   case $i in
     --disable-uploading)
@@ -30,6 +28,7 @@ for CODEQL_DATABASE in $CODEQL_DATABASES/* ; do
     echo "CodeQL Language :: $CODEQL_LANGUAGE"
 
     # For tracing
+    # TODO: this might produce an error if the data is already finalized
     codeql database finalize $CODEQL_DATABASE | true
 
     # The --sarif-category must be set in case of multiple databases
