@@ -33,7 +33,7 @@ gh codeql-scan
 # `init` mode: Create only the Codeql database
 gh codeql-scan init --auto-detect
 # or manually set language
-gh codeql-scan init --la--auto-detect 
+gh codeql-scan init -l=java 
 ```
 
 ```bash
