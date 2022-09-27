@@ -12,6 +12,7 @@ export CODEQL_RESULTS="$PWD/.codeql-results"
 export CODEQL_BINARY="gh codeql"
 # `code-scanning` (default), `security-extended`, or `security-and-quality`
 export CODEQL_SUITE="code-scanning"
+# Tracing is disabled by default
 export CODEQL_TRACING=1
 export CODEQL_LANGUAGES=
 
@@ -47,16 +48,19 @@ EOF
 
 # default: scan
 MODE="scan"
-if [[ "$1" =~ ^(init|analyze|scan|upload) ]]; then
-    MODE="$1"
-    shift
-elif [[ "$1" = "--help" ]]; then
+if [ -z ${1+x} ]; then
+    debug "Using default mode"
+
+elif [[ "${1:na}" = "--help" ]]; then
     codeql-scan-help
     exit 0
+elif [[ "${1}" =~ ^(init|analyze|scan|upload) ]]; then
+    MODE="$1"
+    shift
+
 fi
 
-
-
+# parse other arguments
 for i in "$@"; do
   case $i in
     --debug)
@@ -131,7 +135,10 @@ elif [ $MODE = "upload" ]; then
 elif [ $MODE = "scan" ]; then
     echo "Running Scan mode..."
 
-    $EXTENSION_LOCATION/bin/codeql-init --auto-detect
+    debug "Disable tracing as it can not be used in this mode"
+    export CODEQL_TRACING=0
+    
+    $EXTENSION_LOCATION/bin/codeql-init --auto-detect  
     $EXTENSION_LOCATION/bin/codeql-analyze
 
     if [ "$GITHUB_UPLOAD" = "1" ]; then
@@ -143,5 +150,4 @@ else
     codeql-scan-help
     exit 1
 fi
-
 

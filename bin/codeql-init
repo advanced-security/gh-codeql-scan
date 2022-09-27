@@ -97,12 +97,6 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
         info "Starting CodeQL Tracing..."
         # Note: This only supports one language at a time to be intercepted using tracing
         source $CODEQL_DATABASE/temp/tracingEnvironment/start-tracing.sh
-
-    elif [ "$CODEQL_TRACING" = "0" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
-        CODEQL_AUTO_BUILD_PATH="$CODEQL_BIN_PATH/$CODEQL_LANGUAGE/tools/autobuild.sh"
-        info "Running CodeQL auto-build :: $CODEQL_AUTO_BUILD_PATH"
-        
-        eval $CODEQL_AUTO_BUILD_PATH
     fi
 done
 
