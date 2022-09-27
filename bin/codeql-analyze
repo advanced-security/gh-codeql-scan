@@ -21,7 +21,7 @@ done
 for CODEQL_DATABASE in $CODEQL_DATABASES/* ; do
     CODEQL_DATABASE_NAME="$(basename $CODEQL_DATABASE)"
     CODEQL_LANGUAGE=$(echo $CODEQL_DATABASE_NAME | cut -d "-" -f 1)
-    CODEQL_SARIF="${CODEQL_RESULTS}/${DATABASE}.sarif"
+    CODEQL_SARIF="${CODEQL_RESULTS}/${CODEQL_LANGUAGE}.sarif"
 
     echo "CodeQL Database Path :: $CODEQL_DATABASE"
     echo "CodeQL Database Name :: $CODEQL_DATABASE_NAME"
@@ -29,10 +29,10 @@ for CODEQL_DATABASE in $CODEQL_DATABASES/* ; do
 
     # For tracing
     # TODO: this might produce an error if the data is already finalized
-    codeql database finalize $CODEQL_DATABASE | true
+    $CODEQL_BINARY database finalize $CODEQL_DATABASE | true
 
     # The --sarif-category must be set in case of multiple databases
-    codeql database analyze \
+    $CODEQL_BINARY database analyze \
         --format="sarif-latest" \
         --sarif-category="${DATABASE}" \
         --output=$CODEQL_SARIF \
@@ -42,20 +42,4 @@ for CODEQL_DATABASE in $CODEQL_DATABASES/* ; do
     echo "CodeQL SARIF Output :: $CODEQL_SARIF"
 done
 
-
-if [ "$GITHUB_UPLOAD" = "1" ]; then
-    # Upload results for each SARIF results file found
-    for SARIF_FILE in $CODEQL_RESULTS/* ; do
-        echo "SARIF File uploading :: $SARIF_FILE"
-
-        # TODO: Failed to upload
-        # > A fatal error occurred: SARIF file does not exist: "/codeql/results/*"
-        codeql github upload-results \
-            --sarif=$SARIF_FILE \
-            --github-url=$GITHUB_INSTANCE \
-            --repository=$GITHUB_REPOSITORY \
-            --ref=$GIT_REF \
-            --commit=$GIT_HASH
-    done
-fi
 

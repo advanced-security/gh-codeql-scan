@@ -1,19 +1,22 @@
 #!/bin/bash
 set -eu
-HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+
+source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL
 export CODEQL_DATABASES="$PWD/.codeql-databases"
 # Override the database if it exists
 export CODEQL_DATABASES_OVERRIDE=1
 export CODEQL_RESULTS="$PWD/.codeql-results"
+export CODEQL_BINARY="gh codeql"
 # `code-scanning` (default), `security-extended`, or `security-and-quality`
 export CODEQL_SUITE="code-scanning"
 export CODEQL_TRACING=1
 export CODEQL_LANGUAGES=
 
 # >> GitHub
-export GITHUB_INSTANCE="${GITHUB_INSTANCE:https://github.com}"
+export GITHUB_INSTANCE="https://github.com"
 # upload by default
 export GITHUB_UPLOAD=1
 # do not auto-detect languages 
@@ -26,15 +29,6 @@ export GIT_HASH=$(git rev-parse HEAD)
 export GIT_REF="refs/heads/$(git branch --show-current)"
 
 
-# codeql-scan {MODE} {OPS}
-if [ -z ${1+x} ]; then
-    MODE="scan"     # default mode
-else
-    MODE="$1"
-    shift
-fi
-
-
 codeql-scan-help() {
     cat <<EOF
 GitHub CodeQL Scan tool
@@ -44,19 +38,37 @@ gh codeql-scan {MODE} {ARGS}
 gh codeql-scan              # default: "scan"
 gh codeql-scan init         # initialise the scan 
 gh codeql-scan analysis     # run the analysis
+gh codeql-scan upload       # upload present SARIF files
 gh codeql-scan scan         # full end-to-end scan 
 EOF
 }
 
 
+
+# default: scan
+MODE="scan"
+if [[ "$1" =~ ^(init|analyze|scan|upload) ]]; then
+    MODE="$1"
+    shift
+elif [[ "$1" = "--help" ]]; then
+    codeql-scan-help
+    exit 0
+fi
+
+
+
 for i in "$@"; do
   case $i in
+    --debug)
+        export DEBUG=1
+        shift
+        ;;
     --repo=*)
         export GITHUB_REPOSITORY="${i#*=}"
         shift
         ;;
     --auto-detect)
-        export AUTO_DETECT=1
+        export GIHTUB_AUTO_DETECT=1
         shift
         ;;
     --disable-tracing)
@@ -70,6 +82,15 @@ for i in "$@"; do
     -c=*|--command=*)
         export CODEQL_BUILD_COMMAND="${i#*=}"
         export CODEQL_TRACING=0    # disable tracing too
+        shift
+        ;;
+
+    -b=*|--binary=*|--codeql-bin=*)
+        export CODEQL_BINARY="${i#*=}"
+        shift
+        ;;
+    -i=*|--instance=*)
+        export GITHUB_INSTANCE="${i#*=}"
         shift
         ;;
     -*|--*)
@@ -86,25 +107,37 @@ done
 mkdir -p $CODEQL_DATABASES
 mkdir -p $CODEQL_RESULTS
 
+if [ -z ${GITHUB_REPOSITORY+x} ]; then
+    # TODO: Assumes the remote origin is the upstream repo
+    REMOTE=$(git config --get remote.origin.url)
+fi
 
 
 if [ $MODE = "init" ]; then
     echo "Running Init mode..."
     
     #$HERE/bin/codeql-config.sh
-    $HERE/bin/codeql-init
+    $EXTENSION_LOCATION/bin/codeql-init
 
 elif [ $MODE = "analysis" ]; then
     echo "Running Analysis mode..."
     
-    $HERE/bin/codeql-analyze
+    $EXTENSION_LOCATION/bin/codeql-analyze
+
+elif [ $MODE = "upload" ]; then
+    echo "Uploading results to GitHub..."
+    $EXTENSION_LOCATION/bin/codeql-upload
 
 elif [ $MODE = "scan" ]; then
     echo "Running Scan mode..."
 
-    $HERE/bin/codeql-init --auto-detect
-    $HERE/bin/codeql-analyze
+    $EXTENSION_LOCATION/bin/codeql-init --auto-detect
+    $EXTENSION_LOCATION/bin/codeql-analyze
 
+    if [ "$GITHUB_UPLOAD" = "1" ]; then
+        echo "Uploading results to GitHub..."
+        $EXTENSION_LOCATION/bin/codeql-upload
+    fi
 else
     echo "ERROR: Mode is not supported"
     codeql-scan-help

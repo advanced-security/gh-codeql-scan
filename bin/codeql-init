@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+source $EXTENSION_LOCATION/bin/codeql-utils
 
 for i in "$@"; do
   case $i in
@@ -39,15 +40,15 @@ fi
 # auto-detect languages
 if [[ "$AUTO_DETECT" = "1" ]]; then
     if ! command -v gh &> /dev/null ; then
-        echo "GitHub CLI is not installed and can't auto-detect languages"
+        error "GitHub CLI is not installed and can't auto-detect languages"
         exit 1
     fi
     if [ -z $GITHUB_TOKEN ]; then
-        echo "GitHub Access Token is not present and is required for language detection"
+        error "GitHub Access Token is not present and is required for language detection"
         exit 1
     fi
 
-    echo "Detecting Repository Language(s)"
+    debug "Detecting Repository Language(s)"
     # Get the data from GitHub
     # https://github.com/advanced-security/advanced-security-material/blob/main/code-scanning-workflows/reusable_code_scanning-00.yml#L19-L27
     # JSON array
@@ -58,13 +59,13 @@ fi
 
 
 if [ -z $CODEQL_LANGUAGES ] ; then
-    echo "No CodeQL languages were set"
+    error "No CodeQL languages were set"
     exit 1
 fi 
 
 # comma seperated list (`java,javascript`)
 for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
-    echo "CodeQL Language :: $CODEQL_LANGUAGE"
+    debug "CodeQL Language :: $CODEQL_LANGUAGE"
 
     CODEQL_GITHUB_REPOSITORY=$(echo $GITHUB_REPOSITORY | tr '/' '_')
     CODEQL_DATABASE="$CODEQL_DATABASES/${CODEQL_LANGUAGE}-${CODEQL_GITHUB_REPOSITORY}"
@@ -74,7 +75,7 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
         rm -rf $CODEQL_DATABASE
     fi
 
-    CODEQL_CREATE="codeql database create --language=$CODEQL_LANGUAGE"
+    CODEQL_CREATE="$CODEQL_BINARY database create --language=$CODEQL_LANGUAGE"
     
     if [ ! -z ${BUILD_COMMAND+x} ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]] ; then
         # Add build command
@@ -83,23 +84,23 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
     elif [ "$CODEQL_TRACING" = "1" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
         # Swap to a init command and add --begin-tracing
         # https://codeql.github.com/docs/codeql-cli/creating-codeql-databases/#using-indirect-build-tracing
-        CODEQL_CREATE="codeql database init --begin-tracing --language=$CODEQL_LANGUAGE --source-root=. $CODEQL_DATABASE"
+        CODEQL_CREATE="$CODEQL_BINARY database init --begin-tracing --language=$CODEQL_LANGUAGE --source-root=. $CODEQL_DATABASE"
     else
         # Append only Database
         CODEQL_CREATE="$CODEQL_CREATE $CODEQL_DATABASE"
     fi
 
-    echo "CodeQL Create Command :: $CODEQL_CREATE"
+    debug "CodeQL Create Command :: $CODEQL_CREATE"
     eval $CODEQL_CREATE
 
     if  [ "$CODEQL_TRACING" = "1" ] && [ -z ${BUILD_COMMAND+x} ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
-        echo "CodeQL -> Start Tracing"
+        info "Starting CodeQL Tracing..."
         # Note: This only supports one language at a time to be intercepted using tracing
         source $CODEQL_DATABASE/temp/tracingEnvironment/start-tracing.sh
 
     elif [ "$CODEQL_TRACING" = "0" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
         CODEQL_AUTO_BUILD_PATH="$CODEQL_BIN_PATH/$CODEQL_LANGUAGE/tools/autobuild.sh"
-        echo "Running CodeQL auto-build :: $CODEQL_AUTO_BUILD_PATH"
+        info "Running CodeQL auto-build :: $CODEQL_AUTO_BUILD_PATH"
         
         eval $CODEQL_AUTO_BUILD_PATH
     fi

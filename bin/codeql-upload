@@ -1,0 +1,29 @@
+#!/bin/bash
+set -e
+source $EXTENSION_LOCATION/bin/codeql-utils
+
+FILES=$(find $CODEQL_RESULTS -type f -name "*.sarif")
+
+
+# Upload results for each SARIF results file found
+for SARIF_FILE in $FILES; do
+    echo "SARIF File uploading :: $SARIF_FILE"
+    debug "GitHub Instance :: $GITHUB_INSTANCE"
+    debug "GitHub Repository :: $GITHUB_REPOSITORY"
+    
+    if [ ! -f $SARIF_FILE ]; then
+        echo "ERROR"
+        exit 1
+    fi
+
+    gh codeql github upload-results \
+        --sarif=$SARIF_FILE \
+        --github-url=$GITHUB_INSTANCE \
+        --repository=$GITHUB_REPOSITORY \
+        --ref=$GIT_REF \
+        --commit=$GIT_HASH
+done
+
+
+
+

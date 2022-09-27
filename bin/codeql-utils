@@ -2,7 +2,35 @@
 
 set -e
 
+
+info() {
+    echo "[+] $@"
+}
+debug() {
+    if [ ! -z ${DEBUG+x} ]; then
+        echo "[#] DEBUG: $@"
+    fi
+}
+warning() {
+    echo "[!] WARNING: $@"
+}
+error() {
+    echo "[*] ERROR: $@"
+}
+
+
+install-codeql() {
+    echo "Installing CodeQL via gh-cli..."
+    gh extensions install github/gh-codeql
+}
+
+find-codeql() {
+    # returns the command / location to run CodeQL from 
+    echo "TODO"
+}
+
 get-languages() {
+    echo "TODO"
 
 }
 
