@@ -1,0 +1,112 @@
+#!/bin/bash
+set -e
+
+AUTO_DETECT=0
+CODEQL_TRACING=1
+CODEQL_LANGUAGES=
+
+for i in "$@"; do
+  case $i in
+    --auto-detect)
+        AUTO_DETECT=1
+        shift
+        ;;
+    --disable-tracing)
+        CODEQL_TRACING=0
+        shift
+        ;;
+     -l=*|--language=*)
+        CODEQL_LANGUAGES="${i#*=}"
+        shift
+        ;;
+    -c=*|--command=*)
+        BUILD_COMMAND="${i#*=}"
+        CODEQL_TRACING=0    # disable tracing too
+        shift
+        ;;
+    -*|--*)
+        echo "Unknown option $i"
+        exit 1
+        ;;
+    *)
+        ;;
+  esac
+done
+
+
+if [ -z $GITHUB_REPOSITORY ]; then
+    echo "GITHUB_REPOSITORY must be set"
+    exit 1
+fi
+
+echo "GitHub Repository :: $GITHUB_REPOSITORY"
+echo "GitHub Ref :: $GIT_REF"
+
+
+if [[ "$AUTO_DETECT" = "1" ]]; then
+    if ! command -v gh &> /dev/null ; then
+        echo "GitHub CLI is not installed and can't auto-detect languages"
+        exit 1
+    fi
+    if [ -z $GITHUB_TOKEN ]; then
+        echo "GitHub Access Token is not present and is required for language detection"
+        exit 1
+    fi
+    # Get the data from GitHub
+    # https://github.com/advanced-security/advanced-security-material/blob/main/code-scanning-workflows/reusable_code_scanning-00.yml#L19-L27
+    # JSON array
+    language_data=$(gh api repos/${GITHUB_REPOSITORY}/languages -q '[{"C":"cpp", "C++":"cpp", "C#":"csharp", "Go":"go", "Java":"java", "JavaScript":"javascript", "TypeScript":"javascript", "Python":"python", "Ruby":"ruby"}[keys[]]] | unique -[null]')
+    # Remove unneeded chars
+    CODEQL_LANGUAGES=$(echo $language_data | tr -d '"[]')
+fi
+
+
+if [ -z $CODEQL_LANGUAGES ] ; then
+    echo "No CodeQL languages were set"
+    exit 1
+fi 
+
+# comma seperated list (`java,javascript`)
+for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
+    echo "CodeQL Language :: $CODEQL_LANGUAGE"
+
+    CODEQL_GITHUB_REPOSITORY=$(echo $GITHUB_REPOSITORY | tr '/' '_')
+    CODEQL_DATABASE="$CODEQL_DATABASES/${CODEQL_LANGUAGE}-${CODEQL_GITHUB_REPOSITORY}"
+
+    if [ -d $CODEQL_DATABASES ] ; then
+        echo "Deleting old database :: $CODEQL_DATABASE"
+        rm -rf $CODEQL_DATABASE
+    fi
+
+    CODEQL_CREATE="codeql database create --language=$CODEQL_LANGUAGE"
+    
+    if [ ! -z ${BUILD_COMMAND+x} ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]] ; then
+        # Add build command
+        CODEQL_CREATE="$CODEQL_CREATE --command=${BUILD_COMMAND} $CODEQL_DATABASE"
+
+    elif [ "$CODEQL_TRACING" = "1" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
+        # Swap to a init command and add --begin-tracing
+        # https://codeql.github.com/docs/codeql-cli/creating-codeql-databases/#using-indirect-build-tracing
+        CODEQL_CREATE="codeql database init --begin-tracing --language=$CODEQL_LANGUAGE --source-root=. $CODEQL_DATABASE"
+    else
+        # Append only Database
+        CODEQL_CREATE="$CODEQL_CREATE $CODEQL_DATABASE"
+    fi
+
+    echo "CodeQL Create Command :: $CODEQL_CREATE"
+    eval $CODEQL_CREATE
+
+    if  [ "$CODEQL_TRACING" = "1" ] && [ -z ${BUILD_COMMAND+x} ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
+        echo "CodeQL -> Start Tracing"
+        # Note: This only supports one language at a time to be intercepted using tracing
+        source $CODEQL_DATABASE/temp/tracingEnvironment/start-tracing.sh
+
+    elif [ "$CODEQL_TRACING" = "0" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
+        CODEQL_AUTO_BUILD_PATH="$CODEQL_BIN_PATH/$CODEQL_LANGUAGE/tools/autobuild.sh"
+        echo "Running CodeQL auto-build :: $CODEQL_AUTO_BUILD_PATH"
+        
+        eval $CODEQL_AUTO_BUILD_PATH
+    fi
+done
+
+

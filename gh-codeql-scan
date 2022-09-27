@@ -1,0 +1,107 @@
+#!/bin/bash
+set -eu
+HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+
+# CodeQL
+export CODEQL_DATABASES="$HERE/.databases"
+export CODEQL_RESULTS="$HERE/.results"
+# `code-scanning` (default), `security-extended`, or `security-and-quality`
+export CODEQL_SUITE="code-scanning"
+export CODEQL_TRACING=1
+
+# GitHub
+export GITHUB_INSTANCE="${GITHUB_INSTANCE:https://github.com}"
+
+# Git Based metadata
+export GIT_HASH=$(git rev-parse HEAD)
+# Assumes that this is scanning a branch, not a Pull Request
+#   https://docs.github.com/en/code-security/secure-coding/configuring-codeql-code-scanning-in-your-ci-system#scanning-pull-requests
+export GIT_REF="refs/heads/$(git branch --show-current)"
+
+
+# codeql-scan {MODE} {OPS}
+if [ -z ${1+x} ]; then
+    MODE="scan"     # default mode
+else
+    MODE="$1"
+    shift
+fi
+
+
+codeql-scan-help() {
+    cat <<EOF
+GitHub CodeQL Scan tool
+
+gh codeql-scan {MODE} {ARGS}
+
+gh codeql-scan              # default: "scan"
+gh codeql-scan init         # initialise the scan 
+gh codeql-scan analysis     # run the analysis
+gh codeql-scan scan         # full end-to-end scan 
+EOF
+}
+
+
+for i in "$@"; do
+  case $i in
+    --repo=*)
+        export GITHUB_REPOSITORY="${i#*=}"
+        shift
+        ;;
+    --auto-detect)
+        export AUTO_DETECT=1
+        shift
+        ;;
+    --disable-tracing)
+        export CODEQL_TRACING=0
+        shift
+        ;;
+     -l=*|--language=*)
+        export CODEQL_LANGUAGES="${i#*=}"
+        shift
+        ;;
+    -c=*|--command=*)
+        export CODEQL_BUILD_COMMAND="${i#*=}"
+        export CODEQL_TRACING=0    # disable tracing too
+        shift
+        ;;
+    -*|--*)
+        echo "Unknown option $i"
+        exit 1
+        ;;
+    *)
+        ;;
+  esac
+done
+
+
+# Create dirs CodeQL
+mkdir -p $CODEQL_DATABASES
+mkdir -p $CODEQL_RESULTS
+
+
+
+if [ $MODE = "init" ]; then
+    echo "Running Init mode..."
+    
+    #$HERE/bin/codeql-config.sh
+    $HERE/bin/codeql-init
+
+elif [ $MODE = "analysis" ]; then
+    echo "Running Analysis mode..."
+    
+    $HERE/bin/codeql-analysis
+
+elif [ $MODE = "scan" ]; then
+    echo "Running Scan mode..."
+
+    $HERE/bin/codeql-init --auto-detect
+    $HERE/bin/codeql-analysis
+
+else
+    echo "ERROR: Mode is not supported"
+    codeql-scan-help
+    exit 1
+fi
+
+
