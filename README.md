@@ -1,6 +1,6 @@
 # gh-codeql-scan
 
-GH CLI CodeQL Scan Extension
+GitHub CLI CodeQL Scan Extension to help abstract CodeQL away from users.
 
 ## Install and Setup
 
