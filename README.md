@@ -2,6 +2,10 @@
 
 GitHub CLI CodeQL Scan Extension to help abstract CodeQL away from users.
 
+## Requirements
+
+- [GitHub CLI](https://cli.github.com/)
+
 ## Install and Setup
 
 This installs CodeQL and this scan tool:
