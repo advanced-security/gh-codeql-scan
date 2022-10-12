@@ -50,4 +50,16 @@ gh codeql-scan analyze
 gh codeql-scan upload
 ```
 
+## License 
 
+This project is licensed under the terms of the MIT open source license. Please refer to [MIT](./LICENSE.md) for the full terms.
+
+## Maintainers 
+
+- @GeekMasher
+
+## Support
+
+Suuport is via [GitHub Issues](https://github.com/advanced-security/gh-codeql-scan/issues)
+
+## Acknowledgement
