@@ -60,6 +60,6 @@ This project is licensed under the terms of the MIT open source license. Please 
 
 ## Support
 
-Suuport is via [GitHub Issues](https://github.com/advanced-security/gh-codeql-scan/issues)
+Support is via [GitHub Issues](https://github.com/advanced-security/gh-codeql-scan/issues)
 
 ## Acknowledgement
