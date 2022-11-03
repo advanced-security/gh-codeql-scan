@@ -41,6 +41,19 @@ gh codeql-scan init -l=java
 ```
 
 ```bash
+# Compiled languages -  pass in build command
+gh codeql-scan -c "mvn build ..."
+```
+
+```bash
+# Compiled languages - complicated build process using indirect build tracing
+gh codeql-scan init
+echo "password=$password" > settings.xml
+mvn build --random-custom=flags
+gh codeql-scan analyze
+```
+
+```bash
 # `analyze` mode: Run query-suites on an existing database (auto-detects databases)
 gh codeql-scan analyze
 ```
