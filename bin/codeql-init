@@ -30,8 +30,8 @@ for i in "$@"; do
   esac
 done
 
-
-if [ -z $GITHUB_REPOSITORY ]; then
+ 
+if [ ${GITHUB_UPLOAD} == 1 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
     echo "GITHUB_REPOSITORY must be set"
     exit 1
 fi

@@ -51,7 +51,7 @@ MODE="scan"
 if [ -z ${1+x} ]; then
     debug "Using default mode"
 
-elif [[ "${1:na}" = "--help" ]]; then
+elif [[ "${1}" = "--help" ]]; then
     codeql-scan-help
     exit 0
 elif [[ "${1}" =~ ^(init|analyze|scan|upload) ]]; then
@@ -79,6 +79,10 @@ for i in "$@"; do
         export CODEQL_TRACING=0
         shift
         ;;
+    --disable-upload)
+        export GITHUB_UPLOAD=0
+        shift
+        ;;
      -l=*|--language=*)
         export CODEQL_LANGUAGES="${i#*=}"
         shift
@@ -88,7 +92,10 @@ for i in "$@"; do
         export CODEQL_TRACING=0    # disable tracing too
         shift
         ;;
-
+     -d=*|--databases=*)
+        export CODEQL_DATABASES="${i#*=}"
+        shift
+        ;;
     -b=*|--binary=*|--codeql-bin=*)
         export CODEQL_BINARY="${i#*=}"
         shift
@@ -111,7 +118,8 @@ done
 mkdir -p $CODEQL_DATABASES
 mkdir -p $CODEQL_RESULTS
 
-if [ -z ${GITHUB_REPOSITORY+x} ]; then
+
+if [ ${GITHUB_UPLOAD} == 1 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
     # TODO: Assumes the remote origin is the upstream repo
     REMOTE=$(git config --get remote.origin.url)
 fi
