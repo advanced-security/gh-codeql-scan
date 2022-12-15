@@ -9,7 +9,7 @@ export CODEQL_DATABASES="${CODEQL_DATABASES:=$PWD/.codeql-databases}"
 # Override the database if it exists
 export CODEQL_DATABASES_OVERRIDE=1
 export CODEQL_RESULTS="${CODEQL_RESULTS:=$PWD/.codeql-results}"
-export CODEQL_BINARY="${CODEQL_BIN:=codeql}"
+export CODEQL_BINARY="${CODEQL_BINARY:=codeql}"
 # `code-scanning` (default), `security-extended`, or `security-and-quality`
 export CODEQL_SUITE="${CODEQL_SUITE:=code-scanning}"
 # Tracing is disabled by default
