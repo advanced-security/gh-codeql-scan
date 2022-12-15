@@ -5,13 +5,13 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL
-export CODEQL_DATABASES="$PWD/.codeql-databases"
+export CODEQL_DATABASES="${CODEQL_DATABASES:=$PWD/.codeql-databases}"
 # Override the database if it exists
 export CODEQL_DATABASES_OVERRIDE=1
-export CODEQL_RESULTS="$PWD/.codeql-results"
+export CODEQL_RESULTS="${CODEQL_RESULTS:=$PWD/.codeql-results}"
 export CODEQL_BINARY="gh codeql"
 # `code-scanning` (default), `security-extended`, or `security-and-quality`
-export CODEQL_SUITE="code-scanning"
+export CODEQL_SUITE="${CODEQL_SUITE:=code-scanning}"
 # Tracing is disabled by default
 export CODEQL_TRACING=1
 export CODEQL_LANGUAGES=
@@ -67,7 +67,7 @@ for i in "$@"; do
         export DEBUG=1
         shift
         ;;
-    --repo=*)
+    -r=*|--repo=*)
         export GITHUB_REPOSITORY="${i#*=}"
         shift
         ;;
@@ -119,10 +119,11 @@ mkdir -p $CODEQL_DATABASES
 mkdir -p $CODEQL_RESULTS
 
 
-if [ ${GITHUB_UPLOAD} == 1 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
-    # TODO: Assumes the remote origin is the upstream repo
-    REMOTE=$(git config --get remote.origin.url)
-fi
+# If uploading and GitHub repo isn't set
+#if [ ${GITHUB_UPLOAD} == 1 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
+#    # TODO: Assumes the remote origin is the upstream repo
+#    REMOTE=$(git config --get remote.origin.url)
+#fi
 
 
 if [ $MODE = "init" ]; then

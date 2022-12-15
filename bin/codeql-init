@@ -31,14 +31,20 @@ for i in "$@"; do
 done
 
  
-if [ ${GITHUB_UPLOAD} == 1 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
+if [ ${GITHUB_UPLOAD} == 0 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
+    # If the repo isn't set 
+    export GITHUB_REPOSITORY="$(basename $PWD)"
+
+elif [ ${GITHUB_UPLOAD} == 1 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
     echo "GITHUB_REPOSITORY must be set"
     exit 1
 fi
 
 
+if [ ! -z ${CODEQL_LANGUAGES+x} ]; then
+    echo "CodeQL Languages :: $CODEQL_LANGUAGES"
 # auto-detect languages
-if [[ "$AUTO_DETECT" = "1" ]]; then
+elif [[ "$AUTO_DETECT" = "1" ]]; then
     if ! command -v gh &> /dev/null ; then
         error "GitHub CLI is not installed and can't auto-detect languages"
         exit 1
@@ -69,6 +75,7 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
 
     CODEQL_GITHUB_REPOSITORY=$(echo $GITHUB_REPOSITORY | tr '/' '_')
     CODEQL_DATABASE="$CODEQL_DATABASES/${CODEQL_LANGUAGE}-${CODEQL_GITHUB_REPOSITORY}"
+    echo "CodeQL Database Name :: $CODEQL_DATABASE"
 
     if [ -d $CODEQL_DATABASES ] ; then
         echo "Deleting old database :: $CODEQL_DATABASE"
