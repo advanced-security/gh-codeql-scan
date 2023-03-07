@@ -70,7 +70,8 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
 
     CODEQL_GITHUB_REPOSITORY=$(echo $GITHUB_REPOSITORY | tr '/' '_')
     CODEQL_DATABASE="$CODEQL_DATABASES/${CODEQL_LANGUAGE}-${CODEQL_GITHUB_REPOSITORY}"
-    echo "CodeQL Database Name :: $CODEQL_DATABASE"
+
+    info "CodeQL Database Name :: $CODEQL_DATABASE"
 
     if [ -d $CODEQL_DATABASES ] ; then
         info "Deleting old database :: $CODEQL_DATABASE"

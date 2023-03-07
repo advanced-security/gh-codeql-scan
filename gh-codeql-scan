@@ -4,6 +4,11 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 
 source $EXTENSION_LOCATION/bin/codeql-utils
 
+# >> CodeQL Scan
+export CODEQL_SCAN_VERSION="0.4.0"
+# enabled by default
+export CODEQL_SCAN_BANNER=1
+
 # >> CodeQL
 export CODEQL_DATABASES="${CODEQL_DATABASES:=$HOME/.codeql/databases}"
 # Override the database if it exists
@@ -21,11 +26,11 @@ export CODEQL_DATABASE_PATHS_FILE="${CODEQL_DATABASE_PATHS_FILE:=/tmp/codeql-dat
 export WORKSPACE="${WORKSPACE:=$PWD}"
 
 # >> GitHub
-export GITHUB_INSTANCE="https://github.com"
+export GITHUB_INSTANCE=${GITHUB_INSTANCE:="https://github.com"}
 # upload by default
-export GITHUB_UPLOAD=1
-# do not auto-detect languages 
-export GITHUB_AUTO_DETECT=0
+export GITHUB_UPLOAD=${GITHUB_UPLOAD:=1}
+# auto-detect languages
+export GITHUB_AUTO_DETECT=${GITHUB_AUTO_DETECT:=1}
 
 # Git Based metadata
 export GIT_HASH=$(git rev-parse HEAD)
@@ -34,34 +39,17 @@ export GIT_HASH=$(git rev-parse HEAD)
 export GIT_REF="refs/heads/$(git branch --show-current)"
 
 
-codeql-scan-help() {
-    cat <<EOF
-GitHub CodeQL Scan tool
-
-gh codeql-scan {MODE} {ARGS}
-
-gh codeql-scan              # default: "scan"
-gh codeql-scan init         # initialise the scan 
-gh codeql-scan analyze      # run the analysis
-gh codeql-scan upload       # upload present SARIF files
-gh codeql-scan scan         # full end-to-end scan 
-EOF
-}
-
-
-
 # default: scan
 MODE="scan"
 if [ -z ${1+x} ]; then
     debug "Using default mode"
-
 elif [[ "${1}" = "--help" ]]; then
     codeql-scan-help
     exit 0
 elif [[ "${1}" =~ ^(init|analyze|scan|upload) ]]; then
     MODE="$1"
+    debug "Using mode :: $MODE"
     shift
-
 fi
 
 # parse other arguments
@@ -85,6 +73,10 @@ for i in "$@"; do
         ;;
     --disable-upload)
         export GITHUB_UPLOAD=0
+        shift
+        ;;
+    --disable-banner)
+        export CODEQL_SCAN_BANNER=0
         shift
         ;;
     -l=*|--language=*)
@@ -122,6 +114,23 @@ for i in "$@"; do
 done
 
 
+display-banner
+
+# Check if CodeQL is installed and have a version
+CODEQL_VERSION="$($CODEQL_BINARY version --format=terse || echo '')"
+
+if [ "$CODEQL_VERSION" = "" ]; then
+    warning "CodeQL is not installed, now installing automatically..."
+
+    codeql-install
+
+    export CODEQL_BINARY="gh codeql"
+    export CODEQL_VERSION=$($CODEQL_BINARY version --format=terse)
+fi
+
+debug "Using CodeQL binary :: $CODEQL_BINARY"
+info "Using CodeQL version :: $CODEQL_VERSION"
+
 # Output dirs
 info "Storing CodeQL databases :: $CODEQL_DATABASES"
 if [ ! -d $CODEQL_DATABASES ]; then
@@ -139,42 +148,42 @@ if [ -z ${GITHUB_REPOSITORY+x} ]; then
     # TODO: support for ssh remotes
     export GITHUB_REPOSITORY=$(echo $REMOTE | sed -e 's/.*github.com[:\/]\(.*\)\.git/\1/')
 
-    echo "Using remote repository: $GITHUB_REPOSITORY"
+    info "Using remote repository: $GITHUB_REPOSITORY"
 fi
 
 
+# Running different modes
 if [ $MODE = "init" ]; then
-    echo "Running Init mode..."
-    
-    #$HERE/bin/codeql-config.sh
-    $EXTENSION_LOCATION/bin/codeql-init
+    info "Running Init mode..."
+
+    $EXTENSION_LOCATION/bin/codeql-init $@
 
 elif [ $MODE = "analyze" ]; then
-    echo "Running Analyze mode..."
+    info "Running Analyze mode..."
 
     $EXTENSION_LOCATION/bin/codeql-analyze $@
 
 elif [ $MODE = "upload" ]; then
-    echo "Uploading results to GitHub..."
+    info "Uploading results to GitHub..."
 
-    $EXTENSION_LOCATION/bin/codeql-upload
+    $EXTENSION_LOCATION/bin/codeql-upload $@
 
 elif [ $MODE = "scan" ]; then
-    echo "Running Scan mode..."
+    info "Running Scan mode..."
 
     debug "Disable build tracing as it can not be used in this mode"
     export CODEQL_TRACING=0
-    
+
     $EXTENSION_LOCATION/bin/codeql-init $@
 
     $EXTENSION_LOCATION/bin/codeql-analyze $@
 
     if [ "$GITHUB_UPLOAD" = "1" ]; then
-        echo "Uploading results to GitHub..."
-        $EXTENSION_LOCATION/bin/codeql-upload
+        info "Uploading results to GitHub..."
+        $EXTENSION_LOCATION/bin/codeql-upload $@
+    else
+        debug "Results are not uploaded to GitHub"
     fi
-else
-    echo "ERROR: Mode is not supported"
-    codeql-scan-help
-    exit 1
 fi
+
+info "Completed CodeQL Scan!"

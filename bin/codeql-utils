@@ -2,26 +2,85 @@
 
 set -e
 
+display-banner() {
+    if [ ! -z ${CODEQL_SCAN_BANNER+x} ] && [ "$CODEQL_SCAN_BANNER" = "0" ]; then
+        return
+    fi
+    echo "   _____           _       _____ _       _____"
+    echo "  /  __ \         | |     |  _  | |     /  ___|"
+    echo "  | /  \/ ___   __| | ___ | | | | |     \ \`--.  ___ __ _ _ __"
+    echo "  | |    / _ \ / _\` \|/ _ | | | | |      \`--. \/ __/ _\` | '_ \\"
+    echo "  | \__/\ (_) | (_| |  __/\ \/' / |____ /\__/ / (_| (_| | | | |"
+    echo "   \____/\___/ \__,_|\___| \_/\_\_____/ \____/ \___\__,_|_| |_|"
+    echo "             v$CODEQL_SCAN_VERSION - by GitHub Field Security Specialist team"
+    echo ""
+}
+
+codeql-scan-help() {
+    cat <<EOF
+GitHub CodeQL Scan tool
+
+gh codeql-scan {MODE} {ARGS}
+
+gh codeql-scan              # default: "scan"
+gh codeql-scan init         # initialise the scan 
+gh codeql-scan analyze      # run the analysis
+gh codeql-scan upload       # upload present SARIF files
+gh codeql-scan scan         # full end-to-end scan 
+EOF
+}
+
+# https://unix.stackexchange.com/questions/9957/how-to-check-if-bash-can-print-colors
+if test -t 1; then
+    ncolors=$(tput colors)
+    if test -n "$ncolors" && test $ncolors -ge 8; then
+        bold="$(tput bold)"
+        underline="$(tput smul)"
+        standout="$(tput smso)"
+        normal="$(tput sgr0)"
+        black="$(tput setaf 0)"
+        red="$(tput setaf 1)"
+        green="$(tput setaf 2)"
+        yellow="$(tput setaf 3)"
+        blue="$(tput setaf 4)"
+        magenta="$(tput setaf 5)"
+        cyan="$(tput setaf 6)"
+        white="$(tput setaf 7)"
+    fi
+fi
+
+# Printing methods for stdout
 
 info() {
-    echo "[+] $@"
+    echo "${green}[+]${normal} $@"
 }
 debug() {
     if [ ! -z ${DEBUG+x} ]; then
-        echo "[#] DEBUG: $@"
+        echo "${blue}[#] DEBUG: $@${normal}"
     fi
 }
 warning() {
-    echo "[!] WARNING: $@"
+    echo "${yellow}[!] WARNING: $@${normal}"
 }
 error() {
-    echo "[*] ERROR: $@"
+    echo "${red}[*] ERROR: $@${normal}"
 }
 
 
-install-codeql() {
+# CodeQL methods
+
+codeql-install() {
+    # https://github.com/GeekMasher/.dotfiles/blob/d08a1525c624e88b4d686cf70da349616d2b8aa4/codeql/.local/codeql-update
     info "Installing CodeQL via gh-cli..."
     gh extensions install github/gh-codeql
+    gh codeql set-version latest
+
+    # install new packs for each language
+    LANGS="cpp,csharp,go,java,javascript,python,ruby"
+    for lang in $(echo $LANGS | sed "s/,/ /g"); do
+        gh codeql pack download "codeql/$lang-queries"
+    done
+    info "CodeQL installed!"
 }
 
 find-codeql() {
@@ -31,5 +90,4 @@ find-codeql() {
 
 get-languages() {
     echo "TODO"
-
 }
