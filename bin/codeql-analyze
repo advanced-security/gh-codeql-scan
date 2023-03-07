@@ -35,11 +35,11 @@ info "Analyzing CodeQL Databases :: $CODEQL_DATABASE_PATHS"
 for CODEQL_DATABASE in $CODEQL_DATABASE_PATHS ; do
     CODEQL_DATABASE_NAME="$(basename $CODEQL_DATABASE)"
     CODEQL_LANGUAGE=$(cat $CODEQL_DATABASE/codeql-database.yml | grep primaryLanguage | cut -d ":" -f 2 | tr -d ' ' | tr -d '"')
-    CODEQL_SARIF="${CODEQL_RESULTS}/${CODEQL_LANGUAGE}.sarif"
+    CODEQL_SARIF="${CODEQL_RESULTS}/${CODEQL_DATABASE_NAME}.sarif"
 
-    echo "CodeQL Database Path :: $CODEQL_DATABASE"
-    echo "CodeQL Database Name :: $CODEQL_DATABASE_NAME"
-    echo "CodeQL Language :: $CODEQL_LANGUAGE"
+    info "CodeQL Database Path :: $CODEQL_DATABASE"
+    info "CodeQL Database Name :: $CODEQL_DATABASE_NAME"
+    info "CodeQL Language :: $CODEQL_LANGUAGE"
 
     # For tracing
     # TODO: this might produce an error if the data is already finalized
@@ -52,6 +52,7 @@ for CODEQL_DATABASE in $CODEQL_DATABASE_PATHS ; do
         --sarif-category="${DATABASE}" \
         --output=$CODEQL_SARIF \
         ${CODEQL_DATABASE}
+        # ${CODEQL_LANGUAGE}-code-scanning.qls
 
-    echo "CodeQL SARIF Output :: $CODEQL_SARIF"
+    info "CodeQL SARIF Output :: $CODEQL_SARIF"
 done

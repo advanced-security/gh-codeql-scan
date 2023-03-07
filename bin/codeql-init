@@ -97,7 +97,7 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
         CODEQL_CREATE="$CODEQL_CREATE $CODEQL_DATABASE"
     fi
 
-    info "CodeQL Create Command :: $CODEQL_CREATE"
+    debug "CodeQL Create Command :: $CODEQL_CREATE"
     eval $CODEQL_CREATE
 
     if  [ "$CODEQL_TRACING" = "1" ] && [ -z ${BUILD_COMMAND+x} ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then

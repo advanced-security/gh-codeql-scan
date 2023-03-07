@@ -165,9 +165,9 @@ elif [ $MODE = "scan" ]; then
     debug "Disable build tracing as it can not be used in this mode"
     export CODEQL_TRACING=0
     
-    $EXTENSION_LOCATION/bin/codeql-init --auto-detect
+    $EXTENSION_LOCATION/bin/codeql-init $@
 
-    $EXTENSION_LOCATION/bin/codeql-analyze
+    $EXTENSION_LOCATION/bin/codeql-analyze $@
 
     if [ "$GITHUB_UPLOAD" = "1" ]; then
         echo "Uploading results to GitHub..."
