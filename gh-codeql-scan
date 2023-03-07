@@ -5,23 +5,27 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL
-export CODEQL_DATABASES="${CODEQL_DATABASES:=$PWD/.codeql-databases}"
+export CODEQL_DATABASES="${CODEQL_DATABASES:=~/.codeql/databases}"
 # Override the database if it exists
 export CODEQL_DATABASES_OVERRIDE=1
-export CODEQL_RESULTS="${CODEQL_RESULTS:=$PWD/.codeql-results}"
-export CODEQL_BINARY="gh codeql"
+export CODEQL_RESULTS="${CODEQL_RESULTS:=~/.codeql/results}"
+export CODEQL_BINARY="${CODEQL_BINARY:=gh codeql}"
 # `code-scanning` (default), `security-extended`, or `security-and-quality`
 export CODEQL_SUITE="${CODEQL_SUITE:=code-scanning}"
 # Tracing is disabled by default
 export CODEQL_TRACING=1
 export CODEQL_LANGUAGES=
+# this variable is used to know while databases need to be analyzed
+export CODEQL_DATABASE_PATHS_FILE="${CODEQL_DATABASE_PATHS_FILE:=/tmp/codeql-database-paths.txt}"
+
+export WORKSPACE="${WORKSPACE:=$PWD}"
 
 # >> GitHub
 export GITHUB_INSTANCE="https://github.com"
 # upload by default
 export GITHUB_UPLOAD=1
 # do not auto-detect languages 
-export GIHTUB_AUTO_DETECT=0
+export GITHUB_AUTO_DETECT=0
 
 # Git Based metadata
 export GIT_HASH=$(git rev-parse HEAD)
@@ -38,7 +42,7 @@ gh codeql-scan {MODE} {ARGS}
 
 gh codeql-scan              # default: "scan"
 gh codeql-scan init         # initialise the scan 
-gh codeql-scan analysis     # run the analysis
+gh codeql-scan analyze      # run the analysis
 gh codeql-scan upload       # upload present SARIF files
 gh codeql-scan scan         # full end-to-end scan 
 EOF
@@ -72,7 +76,7 @@ for i in "$@"; do
         shift
         ;;
     --auto-detect)
-        export GIHTUB_AUTO_DETECT=1
+        export GITHUB_AUTO_DETECT=1
         shift
         ;;
     --disable-tracing)
@@ -83,7 +87,7 @@ for i in "$@"; do
         export GITHUB_UPLOAD=0
         shift
         ;;
-     -l=*|--language=*)
+    -l=*|--language=*)
         export CODEQL_LANGUAGES="${i#*=}"
         shift
         ;;
@@ -92,7 +96,7 @@ for i in "$@"; do
         export CODEQL_TRACING=0    # disable tracing too
         shift
         ;;
-     -d=*|--databases=*)
+    -d=*|--databases=*)
         export CODEQL_DATABASES="${i#*=}"
         shift
         ;;
@@ -104,10 +108,14 @@ for i in "$@"; do
         export GITHUB_INSTANCE="${i#*=}"
         shift
         ;;
-    -*|--*)
-        echo "Unknown option $i"
-        exit 1
+    -w=*|--workspace=*)
+        export WORKSPACE="${i#*=}"
+        shift
         ;;
+    # -*|--*)
+    #     echo "Unknown option $i"
+    #     exit 1
+    #     ;;
     *)
         ;;
   esac
@@ -116,14 +124,18 @@ done
 
 # Create dirs CodeQL
 mkdir -p $CODEQL_DATABASES
+debug "Using CodeQL databases: $CODEQL_DATABASES"
 mkdir -p $CODEQL_RESULTS
+debug "Using CodeQL results: $CODEQL_RESULTS"
 
+# Auto detect the repository owner and name
+if [ -z ${GITHUB_REPOSITORY+x} ]; then
+    REMOTE=$(git config --get remote.origin.url)
+    # TODO: support for ssh remotes
+    export GITHUB_REPOSITORY=$(echo $REMOTE | sed -e 's/.*github.com[:\/]\(.*\)\.git/\1/')
 
-# If uploading and GitHub repo isn't set
-#if [ ${GITHUB_UPLOAD} == 1 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
-#    # TODO: Assumes the remote origin is the upstream repo
-#    REMOTE=$(git config --get remote.origin.url)
-#fi
+    echo "Using remote repository: $GITHUB_REPOSITORY"
+fi
 
 
 if [ $MODE = "init" ]; then
@@ -132,22 +144,24 @@ if [ $MODE = "init" ]; then
     #$HERE/bin/codeql-config.sh
     $EXTENSION_LOCATION/bin/codeql-init
 
-elif [ $MODE = "analysis" ]; then
-    echo "Running Analysis mode..."
-    
-    $EXTENSION_LOCATION/bin/codeql-analyze
+elif [ $MODE = "analyze" ]; then
+    echo "Running Analyze mode..."
+
+    $EXTENSION_LOCATION/bin/codeql-analyze $@
 
 elif [ $MODE = "upload" ]; then
     echo "Uploading results to GitHub..."
+
     $EXTENSION_LOCATION/bin/codeql-upload
 
 elif [ $MODE = "scan" ]; then
     echo "Running Scan mode..."
 
-    debug "Disable tracing as it can not be used in this mode"
+    debug "Disable build tracing as it can not be used in this mode"
     export CODEQL_TRACING=0
     
-    $EXTENSION_LOCATION/bin/codeql-init --auto-detect  
+    $EXTENSION_LOCATION/bin/codeql-init --auto-detect
+
     $EXTENSION_LOCATION/bin/codeql-analyze
 
     if [ "$GITHUB_UPLOAD" = "1" ]; then
@@ -159,4 +173,3 @@ else
     codeql-scan-help
     exit 1
 fi
-

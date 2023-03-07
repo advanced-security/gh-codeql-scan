@@ -1,10 +1,17 @@
 #!/bin/bash
 set -e
+source $EXTENSION_LOCATION/bin/codeql-utils
+
+CODEQL_DATABASE_PATHS=$(cat $CODEQL_DATABASE_PATHS_FILE)
 
 for i in "$@"; do
   case $i in
     --disable-uploading)
         GITHUB_UPLOAD=0
+        shift
+        ;;
+    -p=*|--path=*)
+        CODEQL_DATABASE_PATHS="${i#*=}"
         shift
         ;;
     -*|--*)
@@ -16,11 +23,18 @@ for i in "$@"; do
   esac
 done
 
-# TODO: not in parallel 
+if [ -z $CODEQL_DATABASE_PATHS ]; then
+    error "No CodeQL Databases found"
+    exit 1
+fi
 
-for CODEQL_DATABASE in $CODEQL_DATABASES/* ; do
+info "Analyzing CodeQL Databases :: $CODEQL_DATABASE_PATHS"
+
+# TODO: not in parallel
+
+for CODEQL_DATABASE in $CODEQL_DATABASE_PATHS ; do
     CODEQL_DATABASE_NAME="$(basename $CODEQL_DATABASE)"
-    CODEQL_LANGUAGE=$(echo $CODEQL_DATABASE_NAME | cut -d "-" -f 1)
+    CODEQL_LANGUAGE=$(cat $CODEQL_DATABASE/codeql-database.yml | grep primaryLanguage | cut -d ":" -f 2 | tr -d ' ' | tr -d '"')
     CODEQL_SARIF="${CODEQL_RESULTS}/${CODEQL_LANGUAGE}.sarif"
 
     echo "CodeQL Database Path :: $CODEQL_DATABASE"
@@ -31,15 +45,13 @@ for CODEQL_DATABASE in $CODEQL_DATABASES/* ; do
     # TODO: this might produce an error if the data is already finalized
     $CODEQL_BINARY database finalize $CODEQL_DATABASE | true
 
+    # TODO: custom QL suites
     # The --sarif-category must be set in case of multiple databases
     $CODEQL_BINARY database analyze \
         --format="sarif-latest" \
         --sarif-category="${DATABASE}" \
         --output=$CODEQL_SARIF \
-        ${CODEQL_DATABASE} \
-        ${CODEQL_LANGUAGE}-${CODEQL_SUITE}.qls
+        ${CODEQL_DATABASE}
 
     echo "CodeQL SARIF Output :: $CODEQL_SARIF"
 done
-
-

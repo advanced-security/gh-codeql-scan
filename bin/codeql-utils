@@ -20,7 +20,7 @@ error() {
 
 
 install-codeql() {
-    echo "Installing CodeQL via gh-cli..."
+    info "Installing CodeQL via gh-cli..."
     gh extensions install github/gh-codeql
 }
 
@@ -33,5 +33,3 @@ get-languages() {
     echo "TODO"
 
 }
-
-
