@@ -122,11 +122,15 @@ for i in "$@"; do
 done
 
 
-# Create dirs CodeQL
-mkdir -p $CODEQL_DATABASES
-debug "Using CodeQL databases: $CODEQL_DATABASES"
-mkdir -p $CODEQL_RESULTS
-debug "Using CodeQL results: $CODEQL_RESULTS"
+# Output dirs
+info "Storing CodeQL databases :: $CODEQL_DATABASES"
+if [ ! -d $CODEQL_DATABASES ]; then
+    mkdir -p $CODEQL_DATABASES
+fi
+info "Storing CodeQL results :: $CODEQL_RESULTS"
+if [ ! -d $CODEQL_RESULTS ]; then
+    mkdir -p $CODEQL_RESULTS
+fi
 
 
 # Auto detect the repository owner and name
