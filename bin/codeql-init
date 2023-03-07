@@ -21,10 +21,6 @@ for i in "$@"; do
         CODEQL_TRACING=0    # disable tracing too
         shift
         ;;
-    -*|--*)
-        echo "Unknown option $i"
-        exit 1
-        ;;
     *)
         ;;
   esac

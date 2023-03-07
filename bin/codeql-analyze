@@ -14,10 +14,6 @@ for i in "$@"; do
         CODEQL_DATABASE_PATHS="${i#*=}"
         shift
         ;;
-    -*|--*)
-        echo "Unknown option $i"
-        exit 1
-        ;;
     *)
         ;;
   esac
