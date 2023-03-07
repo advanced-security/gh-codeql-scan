@@ -5,10 +5,10 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL
-export CODEQL_DATABASES="${CODEQL_DATABASES:=~/.codeql/databases}"
+export CODEQL_DATABASES="${CODEQL_DATABASES:=$HOME/.codeql/databases}"
 # Override the database if it exists
 export CODEQL_DATABASES_OVERRIDE=1
-export CODEQL_RESULTS="${CODEQL_RESULTS:=~/.codeql/results}"
+export CODEQL_RESULTS="${CODEQL_RESULTS:=$HOME/.codeql/results}"
 export CODEQL_BINARY="${CODEQL_BINARY:=gh codeql}"
 # `code-scanning` (default), `security-extended`, or `security-and-quality`
 export CODEQL_SUITE="${CODEQL_SUITE:=code-scanning}"
@@ -127,6 +127,7 @@ mkdir -p $CODEQL_DATABASES
 debug "Using CodeQL databases: $CODEQL_DATABASES"
 mkdir -p $CODEQL_RESULTS
 debug "Using CodeQL results: $CODEQL_RESULTS"
+
 
 # Auto detect the repository owner and name
 if [ -z ${GITHUB_REPOSITORY+x} ]; then
