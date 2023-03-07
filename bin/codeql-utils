@@ -19,6 +19,20 @@ if test -t 1; then
         cyan="$(tput setaf 6)"
         white="$(tput setaf 7)"
     fi
+else
+    bold=""
+    underline=""
+    standout=""
+    normal=""
+    black=""
+    red=""
+    green=""
+    yellow=""
+    blue=""
+    magenta=""
+    cyan=""
+    white=""
+fi
 fi
 
 display-banner() {
