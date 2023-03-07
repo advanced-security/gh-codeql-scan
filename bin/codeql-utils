@@ -2,34 +2,6 @@
 
 set -e
 
-display-banner() {
-    if [ ! -z ${CODEQL_SCAN_BANNER+x} ] && [ "$CODEQL_SCAN_BANNER" = "0" ]; then
-        return
-    fi
-    echo "   _____           _       _____ _       _____"
-    echo "  /  __ \         | |     |  _  | |     /  ___|"
-    echo "  | /  \/ ___   __| | ___ | | | | |     \ \`--.  ___ __ _ _ __"
-    echo "  | |    / _ \ / _\` \|/ _ | | | | |      \`--. \/ __/ _\` | '_ \\"
-    echo "  | \__/\ (_) | (_| |  __/\ \/' / |____ /\__/ / (_| (_| | | | |"
-    echo "   \____/\___/ \__,_|\___| \_/\_\_____/ \____/ \___\__,_|_| |_|"
-    echo "             v$CODEQL_SCAN_VERSION - by GitHub Field Security Specialist team"
-    echo ""
-}
-
-codeql-scan-help() {
-    cat <<EOF
-GitHub CodeQL Scan tool
-
-gh codeql-scan {MODE} {ARGS}
-
-gh codeql-scan              # default: "scan"
-gh codeql-scan init         # initialise the scan 
-gh codeql-scan analyze      # run the analysis
-gh codeql-scan upload       # upload present SARIF files
-gh codeql-scan scan         # full end-to-end scan 
-EOF
-}
-
 # https://unix.stackexchange.com/questions/9957/how-to-check-if-bash-can-print-colors
 if test -t 1; then
     ncolors=$(tput colors)
@@ -48,6 +20,34 @@ if test -t 1; then
         white="$(tput setaf 7)"
     fi
 fi
+
+display-banner() {
+    if [ ! -z ${CODEQL_SCAN_BANNER+x} ] && [ "$CODEQL_SCAN_BANNER" = "0" ]; then
+        return
+    fi
+    echo "${green}   _____           _       _____ _       _____"
+    echo "  /  __ \         | |     |  _  | |     /  ___|"
+    echo "  | /  \/ ___   __| | ___ | | | | |     \ \`--.  ___ __ _ _ __"
+    echo "  | |    / _ \ / _\` \|/ _ | | | | |      \`--. \/ __/ _\` | '_ \\"
+    echo "  | \__/\ (_) | (_| |  __/\ \/' / |____ /\__/ / (_| (_| | | | |"
+    echo "   \____/\___/ \__,_|\___| \_/\_\_____/ \____/ \___\__,_|_| |_|${normal}"
+    echo "             v${underline}$CODEQL_SCAN_VERSION${normal} - by ${bold}${red}GitHub Field Security Specialist team${normal}"
+    echo ""
+}
+
+codeql-scan-help() {
+    cat <<EOF
+GitHub CodeQL Scan tool
+
+gh codeql-scan {MODE} {ARGS}
+
+gh codeql-scan              # default: "scan"
+gh codeql-scan init         # initialise the scan 
+gh codeql-scan analyze      # run the analysis
+gh codeql-scan upload       # upload present SARIF files
+gh codeql-scan scan         # full end-to-end scan 
+EOF
+}
 
 # Printing methods for stdout
 
