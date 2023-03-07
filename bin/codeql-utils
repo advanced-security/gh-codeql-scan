@@ -33,7 +33,6 @@ else
     cyan=""
     white=""
 fi
-fi
 
 display-banner() {
     if [ ! -z ${CODEQL_SCAN_BANNER+x} ] && [ "$CODEQL_SCAN_BANNER" = "0" ]; then
