@@ -1,20 +1,41 @@
 #!/bin/bash
 set -e
+
 source $EXTENSION_LOCATION/bin/codeql-utils
 
-FILES=$(find $CODEQL_RESULTS -type f -name "*.sarif")
+CODEQL_DATABASE_PATHS=$(cat $CODEQL_DATABASE_PATHS_FILE)
+
+
+if [ ! -z $CODEQL_DATABASE_PATHS ]; then
+    debug "Database paths found :: $CODEQL_DATABASE_PATHS"
+    # for each database path, find sarif file
+    FILES=""
+    for CODEQL_DATABASE_PATH in $CODEQL_DATABASE_PATHS; do
+        SARIF_FILE="$CODEQL_RESULTS/$(basename $CODEQL_DATABASE_PATH).sarif"
+        debug "Possible SARIF file :: $SARIF_FILE"
+        if [ -f $SARIF_FILE ]; then
+            FILES="$FILES $SARIF_FILE"
+        fi
+    done
+else
+    info "Uploading all SARIF files found in :: $CODEQL_RESULTS"
+    FILES=$(find $CODEQL_RESULTS -type f -name "*.sarif")
+fi
+
+info "GitHub Instance :: $GITHUB_INSTANCE"
 
 
 # Upload results for each SARIF results file found
 for SARIF_FILE in $FILES; do
-    echo "SARIF File uploading :: $SARIF_FILE"
-    debug "GitHub Instance :: $GITHUB_INSTANCE"
-    debug "GitHub Repository :: $GITHUB_REPOSITORY"
-    
     if [ ! -f $SARIF_FILE ]; then
-        echo "ERROR"
+        error "SARIF file not found :: $SARIF_FILE"
         exit 1
     fi
+
+    info "SARIF File uploading :: $SARIF_FILE"
+
+    debug "GitHub Instance :: $GITHUB_INSTANCE"
+    debug "GitHub Repository :: $GITHUB_REPOSITORY"
 
     gh codeql github upload-results \
         --sarif=$SARIF_FILE \
@@ -22,8 +43,7 @@ for SARIF_FILE in $FILES; do
         --repository=$GITHUB_REPOSITORY \
         --ref=$GIT_REF \
         --commit=$GIT_HASH
+
+    debug "Finished uploading SARIF file :: $SARIF_FILE"
+
 done
-
-
-
-

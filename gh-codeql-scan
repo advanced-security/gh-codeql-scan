@@ -5,7 +5,7 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL Scan
-export CODEQL_SCAN_VERSION="0.4.2"
+export CODEQL_SCAN_VERSION="0.5.0"
 # enabled by default
 export CODEQL_SCAN_BANNER=1
 
@@ -116,19 +116,20 @@ done
 
 display-banner
 
-# Check if CodeQL is installed and have a version
-CODEQL_VERSION="$($CODEQL_BINARY version --format=terse || echo '')"
+debug "Checking CodeQL installation :: $CODEQL_BINARY"
+CODEQL_VERSION=$(codeql-version)
+debug "CodeQL Original version :: $CODEQL_VERSION"
 
 if [ "$CODEQL_VERSION" = "" ]; then
     warning "CodeQL is not installed, now installing automatically..."
 
     codeql-install
-
+    # re-export the gh cli codeql extension
     export CODEQL_BINARY="gh codeql"
-    export CODEQL_VERSION=$($CODEQL_BINARY version --format=terse)
+    export CODEQL_VERSION=$(codeql-version)
 fi
 
-debug "Using CodeQL binary :: $CODEQL_BINARY"
+
 info "Using CodeQL version :: $CODEQL_VERSION"
 
 # Output dirs
@@ -168,6 +169,8 @@ elif [ $MODE = "upload" ]; then
 
     $EXTENSION_LOCATION/bin/codeql-upload $@
 
+    info "Find Code Scanning results at: $GITHUB_INSTANCE/$GITHUB_REPOSITORY/security/code-scanning"
+
 elif [ $MODE = "scan" ]; then
     info "Running Scan mode..."
 
@@ -181,6 +184,8 @@ elif [ $MODE = "scan" ]; then
     if [ "$GITHUB_UPLOAD" = "1" ]; then
         info "Uploading results to GitHub..."
         $EXTENSION_LOCATION/bin/codeql-upload $@
+
+        info "Find Code Scanning results at: $GITHUB_INSTANCE/$GITHUB_REPOSITORY/security/code-scanning"
     else
         debug "Results are not uploaded to GitHub"
     fi

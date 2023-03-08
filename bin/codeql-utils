@@ -2,6 +2,8 @@
 
 set -e
 
+export QL_LANGUAGES="cpp,csharp,go,java,javascript,python,ruby"
+
 # https://unix.stackexchange.com/questions/9957/how-to-check-if-bash-can-print-colors
 if test -t 1; then
     ncolors=$(tput colors)
@@ -69,11 +71,11 @@ info() {
 }
 debug() {
     if [ ! -z ${DEBUG+x} ]; then
-        echo "${blue}[#] DEBUG: $@${normal}"
+        echo "${blue}[#] DEBUG: $@ ${normal}"
     fi
 }
 warning() {
-    echo "${yellow}[!] WARNING: $@${normal}"
+    echo "${yellow}[!] WARNING: $@ ${normal}"
 }
 error() {
     echo "${red}[*] ERROR: $@${normal}"
@@ -82,25 +84,23 @@ error() {
 
 # CodeQL methods
 
+codeql-version() {
+    # return the version of CodeQL installed
+    CODEQL_VERSION=$($CODEQL_BINARY version --format=terse 2>/dev/null)
+    echo "$CODEQL_VERSION"
+}
+
 codeql-install() {
     # https://github.com/GeekMasher/.dotfiles/blob/d08a1525c624e88b4d686cf70da349616d2b8aa4/codeql/.local/codeql-update
     info "Installing CodeQL via gh-cli..."
+
     gh extensions install github/gh-codeql
     gh codeql set-version latest
 
     # install new packs for each language
-    LANGS="cpp,csharp,go,java,javascript,python,ruby"
-    for lang in $(echo $LANGS | sed "s/,/ /g"); do
+    for lang in $(echo $QL_LANGUAGES | sed "s/,/ /g"); do
         gh codeql pack download "codeql/$lang-queries"
     done
+
     info "CodeQL installed!"
-}
-
-find-codeql() {
-    # returns the command / location to run CodeQL from 
-    echo "TODO"
-}
-
-get-languages() {
-    echo "TODO"
 }
