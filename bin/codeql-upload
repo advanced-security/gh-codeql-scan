@@ -3,11 +3,12 @@ set -e
 
 source $EXTENSION_LOCATION/bin/codeql-utils
 
-CODEQL_DATABASE_PATHS=$(cat $CODEQL_DATABASE_PATHS_FILE)
+export CODEQL_DATABASE_PATHS=$(cat $CODEQL_DATABASE_PATHS_FILE)
 
 
-if [ ! -z $CODEQL_DATABASE_PATHS ]; then
+if [[ $CODEQL_DATABASE_PATHS != "" ]]; then
     debug "Database paths found :: $CODEQL_DATABASE_PATHS"
+
     # for each database path, find sarif file
     FILES=""
     for CODEQL_DATABASE_PATH in $CODEQL_DATABASE_PATHS; do

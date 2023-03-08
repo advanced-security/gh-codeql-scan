@@ -4,7 +4,10 @@ source $EXTENSION_LOCATION/bin/codeql-utils
 
 CODEQL_DATABASE_PATHS=$(cat $CODEQL_DATABASE_PATHS_FILE)
 
+export CODEQL_SUITE="${CODEQL_SUITE:=}"
 CODEQL_ADD_HELP="--sarif-add-query-help"
+CODEQL_ADD_SNIPPETS="--sarif-add-snippets"
+
 
 for i in "$@"; do
   case $i in
@@ -12,8 +15,16 @@ for i in "$@"; do
         CODEQL_ADD_HELP=""
         shift
         ;;
+    --ignore-snippets)
+        CODEQL_ADD_SNIPPETS=""
+        shift
+        ;;
     --disable-uploading)
         GITHUB_UPLOAD=0
+        shift
+        ;;
+    -s=*|--suite=*)
+        export CODEQL_SUITE="${i#*=}"
         shift
         ;;
     -p=*|--path=*)
@@ -32,7 +43,6 @@ fi
 
 info "Analyzing CodeQL Databases :: $CODEQL_DATABASE_PATHS"
 
-# TODO: not in parallel
 
 for CODEQL_DATABASE in $CODEQL_DATABASE_PATHS ; do
     CODEQL_DATABASE_NAME="$(basename $CODEQL_DATABASE)"
@@ -44,18 +54,17 @@ for CODEQL_DATABASE in $CODEQL_DATABASE_PATHS ; do
     info "CodeQL Language :: $CODEQL_LANGUAGE"
 
     # For tracing
-    # TODO: this might produce an error if the data is already finalized
-    $CODEQL_BINARY database finalize $CODEQL_DATABASE | true
+    debug "Finalizing CodeQL Database"
+    $CODEQL_BINARY database finalize $CODEQL_DATABASE 2>/dev/null | true
 
-    # TODO: custom QL suites
     # The --sarif-category must be set in case of multiple databases
     $CODEQL_BINARY database analyze \
-        $CODEQL_ADD_HELP \
         --format="sarif-latest" \
-        --sarif-category="${DATABASE}" \
+        --sarif-category="codeql-scan:${CODEQL_LANGUAGE}" \
         --output=$CODEQL_SARIF \
-        ${CODEQL_DATABASE}
-        # ${CODEQL_LANGUAGE}-code-scanning.qls
+        -j=0 \
+        $CODEQL_ADD_HELP $CODEQL_ADD_SNIPPETS \
+        ${CODEQL_DATABASE} ${CODEQL_SUITE}
 
     info "CodeQL SARIF Output :: $CODEQL_SARIF"
 done
