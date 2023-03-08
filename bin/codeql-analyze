@@ -4,8 +4,14 @@ source $EXTENSION_LOCATION/bin/codeql-utils
 
 CODEQL_DATABASE_PATHS=$(cat $CODEQL_DATABASE_PATHS_FILE)
 
+CODEQL_ADD_HELP="--sarif-add-query-help"
+
 for i in "$@"; do
   case $i in
+    --ignore-sarif-query-help)
+        CODEQL_ADD_HELP=""
+        shift
+        ;;
     --disable-uploading)
         GITHUB_UPLOAD=0
         shift
@@ -44,6 +50,7 @@ for CODEQL_DATABASE in $CODEQL_DATABASE_PATHS ; do
     # TODO: custom QL suites
     # The --sarif-category must be set in case of multiple databases
     $CODEQL_BINARY database analyze \
+        $CODEQL_ADD_HELP \
         --format="sarif-latest" \
         --sarif-category="${DATABASE}" \
         --output=$CODEQL_SARIF \
