@@ -8,16 +8,7 @@ export CODEQL_DATABASE_PATHS=$(cat $CODEQL_DATABASE_PATHS_FILE)
 
 if [[ $CODEQL_DATABASE_PATHS != "" ]]; then
     debug "Database paths found :: $CODEQL_DATABASE_PATHS"
-
-    # for each database path, find sarif file
-    FILES=""
-    for CODEQL_DATABASE_PATH in $CODEQL_DATABASE_PATHS; do
-        SARIF_FILE="$CODEQL_RESULTS/$(basename $CODEQL_DATABASE_PATH).sarif"
-        debug "Possible SARIF file :: $SARIF_FILE"
-        if [ -f $SARIF_FILE ]; then
-            FILES="$FILES $SARIF_FILE"
-        fi
-    done
+    FILES=$(get-sarif-files $CODEQL_DATABASE_PATHS_FILE)
 else
     info "Uploading all SARIF files found in :: $CODEQL_RESULTS"
     FILES=$(find $CODEQL_RESULTS -type f -name "*.sarif")

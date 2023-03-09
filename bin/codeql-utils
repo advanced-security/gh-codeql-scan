@@ -104,3 +104,15 @@ codeql-install() {
 
     info "CodeQL installed!"
 }
+
+get-sarif-files() {
+    # return a list of SARIF files based on database names
+    DATABASE_PATHS=$(cat $1)
+    for CODEQL_DATABASE_PATH in $DATABASE_PATHS; do
+        SARIF_FILE="$CODEQL_RESULTS/$(basename $CODEQL_DATABASE_PATH).sarif"
+        debug "Possible SARIF file :: $SARIF_FILE"
+        if [ -f $SARIF_FILE ]; then
+            echo "$SARIF_FILE"
+        fi
+    done
+}

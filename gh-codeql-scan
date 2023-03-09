@@ -6,7 +6,7 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL Scan
-export CODEQL_SCAN_VERSION="0.6.1"
+export CODEQL_SCAN_VERSION="0.6.2"
 # enabled by default
 export CODEQL_SCAN_BANNER=1
 
@@ -109,6 +109,10 @@ for i in "$@"; do
         export WORKSPACE="${i#*=}"
         shift
         ;;
+    --view-in-vscode)
+        export CODEQL_VIEW_IN_VSCODE=1
+        shift
+        ;;
     # -*|--*)
     #     echo "Unknown option $i"
     #     exit 1
@@ -198,6 +202,12 @@ elif [ $MODE = "scan" ]; then
     else
         debug "Results are not uploaded to GitHub"
     fi
+fi
+
+
+if [ "$CODEQL_VIEW_IN_VSCODE" = "1" ]; then
+    info "Opening results in VSCode..."
+    code -r $(get-sarif-files $CODEQL_DATABASE_PATHS_FILE)
 fi
 
 info "Completed CodeQL Scan!"
