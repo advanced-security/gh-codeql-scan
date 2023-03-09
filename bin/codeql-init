@@ -48,7 +48,7 @@ elif [[ "$GITHUB_AUTO_DETECT" = "1" ]]; then
     fi
     # Check if the token and repository are set
     if [ -z $GITHUB_TOKEN ] || [ -z ${GITHUB_REPOSITORY+x} ]; then
-        error "GitHub Access Token is not present and is required for language detection"
+        error "GitHub Access Token GITHUB_TOKEN is not present in the env and is required for language detection"
         exit 1
     fi
 
