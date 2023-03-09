@@ -6,7 +6,7 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL Scan
-export CODEQL_SCAN_VERSION="0.5.1"
+export CODEQL_SCAN_VERSION="0.6.1"
 # enabled by default
 export CODEQL_SCAN_BANNER=1
 

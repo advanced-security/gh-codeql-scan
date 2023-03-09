@@ -46,11 +46,6 @@ elif [[ "$GITHUB_AUTO_DETECT" = "1" ]]; then
         error "GitHub CLI is not installed and can't auto-detect languages"
         exit 1
     fi
-    # Check if the token and repository are set
-    if [ -z $GITHUB_TOKEN ] || [ -z ${GITHUB_REPOSITORY+x} ]; then
-        error "GitHub Access Token is not present and is required for language detection"
-        exit 1
-    fi
 
     info "Detecting Repository Language(s)"
     # Get the data from GitHub
