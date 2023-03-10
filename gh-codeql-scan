@@ -32,6 +32,8 @@ export GITHUB_INSTANCE=${GITHUB_INSTANCE:="https://github.com"}
 export GITHUB_UPLOAD=${GITHUB_UPLOAD:=1}
 # auto-detect languages
 export GITHUB_AUTO_DETECT=${GITHUB_AUTO_DETECT:=1}
+# vscode
+export CODEQL_VIEW_IN_VSCODE=${CODEQL_VIEW_IN_VSCODE:=0}
 
 # Git Based metadata
 export GIT_HASH=$(git rev-parse HEAD)
