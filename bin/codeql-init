@@ -26,8 +26,6 @@ for i in "$@"; do
   esac
 done
 
-echo "Command :: ${CODEQL_BUILD_COMMAND}"
-
  
 if [ ${GITHUB_UPLOAD} == 0 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
     # If the repo isn't set 
