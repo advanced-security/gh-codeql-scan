@@ -83,6 +83,13 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
     
     if [ "$CODEQL_TRACING" = "1" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
         debug "Swap to a init command and add --begin-tracing"
+
+        # check if the OS is Mac
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            warning "Tracing on MacOS can have issues with the CodeQL CLI"
+            warning "See https://docs.github.com/en/enterprise-cloud@latest/code-security/codeql-cli/getting-started-with-the-codeql-cli/preparing-your-code-for-codeql-analysis#using-indirect-build-tracing"
+        fi
+
         # https://codeql.github.com/docs/codeql-cli/creating-codeql-databases/#using-indirect-build-tracing
         CODEQL_CREATE="$CODEQL_BINARY database init --begin-tracing --language=$CODEQL_LANGUAGE --source-root=$WORKSPACE $CODEQL_DATABASE"
     else
