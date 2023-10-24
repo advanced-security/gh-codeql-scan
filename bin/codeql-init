@@ -16,7 +16,7 @@ for i in "$@"; do
         export CODEQL_LANGUAGES="${i#*=}"
         shift
         ;;
-    -c=*|--command=*)
+    -c="*"|--command="*")
         export CODEQL_BUILD_COMMAND="${i#*=}"
         export CODEQL_TRACING="1"    # enable tracing
         shift
@@ -25,6 +25,8 @@ for i in "$@"; do
         ;;
   esac
 done
+
+echo "Command :: ${CODEQL_BUILD_COMMAND}"
 
  
 if [ ${GITHUB_UPLOAD} == 0 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
