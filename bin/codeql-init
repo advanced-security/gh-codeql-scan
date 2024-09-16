@@ -21,6 +21,10 @@ for i in "$@"; do
         export CODEQL_TRACING="1"    # enable tracing
         shift
         ;;
+    --trap-caching)
+        export CODEQL_TRAP_CACHING=1
+        shift
+        ;;
     *)
         ;;
   esac
@@ -80,7 +84,7 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
     debug "Tracing :: $CODEQL_TRACING"
 
     CODEQL_CREATE="$CODEQL_BINARY database create -j=0 -M=16000 --language=$CODEQL_LANGUAGE"
-    
+
     if [ "$CODEQL_TRACING" = "1" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
         debug "Swap to a init command and add --begin-tracing"
 
@@ -96,6 +100,13 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
         debug "Append only Database"
         debug "CodeQL auto-build is enabled"
         CODEQL_CREATE="$CODEQL_CREATE $CODEQL_DATABASE"
+    fi
+
+    # TRAP File caching (C/C++ only for now)
+    if [ "$CODEQL_TRAP_CACHING" = "1" ] && [[ "$CODEQL_LANGUAGE" = "cpp" ]]; then
+        info "CodeQL TRAP Caching is enabled"
+        info "CodeQL TRAP Caching Dir :: $CODEQL_TRAP_CACHING_DIR"
+        CODEQL_CREATE="$CODEQL_CREATE -O=cpp.trap.cache.dir=$CODEQL_TRAP_CACHING_DIR -O=cpp.trap.cache.bound=1024 -O=cpp.trap.cache.write=true"
     fi
 
     info "Runnning CodeQL database init/create command..."

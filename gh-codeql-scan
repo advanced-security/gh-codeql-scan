@@ -6,7 +6,7 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL Scan
-export CODEQL_SCAN_VERSION="0.6.2"
+export CODEQL_SCAN_VERSION="0.8.0"
 # enabled by default
 export CODEQL_SCAN_BANNER=1
 
@@ -23,6 +23,9 @@ export CODEQL_TRACING=0
 export CODEQL_LANGUAGES=
 # this variable is used to know while databases need to be analyzed
 export CODEQL_DATABASE_PATHS_FILE="${CODEQL_DATABASE_PATHS_FILE:=/tmp/codeql-database-paths.txt}"
+# TRAP Caching
+export CODEQL_TRAP_CACHING=0
+export CODEQL_TRAP_CACHING_DIR="${CODEQL_TRAP_CACHING_DIR:=$HOME/.codeql/trap-caching}"
 
 export WORKSPACE="${WORKSPACE:=$PWD}"
 
@@ -113,6 +116,10 @@ for i in "$@"; do
         ;;
     --view-in-vscode)
         export CODEQL_VIEW_IN_VSCODE=1
+        shift
+        ;;
+    --trap-caching)
+        export CODEQL_TRAP_CACHING=1
         shift
         ;;
     # -*|--*)
