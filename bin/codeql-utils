@@ -56,11 +56,43 @@ GitHub CodeQL Scan tool
 
 gh codeql-scan {MODE} {ARGS}
 
+# Modes
+
 gh codeql-scan              # default: "scan"
 gh codeql-scan init         # initialise the scan 
 gh codeql-scan analyze      # run the analysis
 gh codeql-scan upload       # upload present SARIF files
 gh codeql-scan scan         # full end-to-end scan 
+
+# Arguments
+
+> All arguments can be set with enviroment variables
+
+-h|--help               # Print help
+--debug                 # Enable debugging
+    
+-r=*|--repo=*           # GitHub Respository (OWNER/NAME)
+-i=*|--instance=*       # GitHub Instance (github.com or Enterprise Server)
+
+-l=*|--language=*       # Set language to scan
+--auto-detect           # Auto-detect languages
+
+-s=*|--suite=*          # Query Suite to use
+-d=*|--databases=*      # Location of the databases to store
+-b=*|--binary=*         # Path to the CodeQL Binary
+-w=*|--workspace=*      # Workspace for the souce code
+
+-c=*|--command=*        # Set the build comment (compiled languages)
+-m=*|--mode=*           # Build mode (autobuild | none)
+--buildless             # Enable buildless / build mode none
+
+--view-in-vscode        # Auto-open the results in VSCode
+
+--disable-tracing       # Disable Build Tracing
+--disable-trap-caching  # Disable Trap file caching
+--disable-upload        # Disable Uploading SARIF to GitHub
+--disable-banner        # Disable printing banner
+
 EOF
 }
 
@@ -105,6 +137,24 @@ codeql-install() {
     info "CodeQL installed!"
 }
 
+# Get 80% the memory of the system in MB
+memory() {
+    MEMORY=0
+    # Get the memory of the system
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # MacOS
+        MEMORY=$(sysctl -n hw.memsize)
+    else
+        # Linux
+        MEMORY=$(free -m | awk 'NR==2{print $2}')
+    fi
+
+    # 80% of the memory
+    MEMORY=$(echo "0.8 * $MEMORY" | bc | cut -d'.' -f1)
+    echo $MEMORY
+}
+
+# Get SARIF files based on database names
 get-sarif-files() {
     # return a list of SARIF files based on database names
     DATABASE_PATHS=$(cat $1)

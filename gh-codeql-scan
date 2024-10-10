@@ -6,7 +6,7 @@ export EXTENSION_LOCATION="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 source $EXTENSION_LOCATION/bin/codeql-utils
 
 # >> CodeQL Scan
-export CODEQL_SCAN_VERSION="0.6.2"
+export CODEQL_SCAN_VERSION="0.8.0"
 # enabled by default
 export CODEQL_SCAN_BANNER=1
 
@@ -23,6 +23,11 @@ export CODEQL_TRACING=0
 export CODEQL_LANGUAGES=
 # this variable is used to know while databases need to be analyzed
 export CODEQL_DATABASE_PATHS_FILE="${CODEQL_DATABASE_PATHS_FILE:=/tmp/codeql-database-paths.txt}"
+export CODEQL_BUILD_COMMAND="${CODEQL_BUILD_COMMAND:=}"
+export CODEQL_BUILD_MODE="${CODEQL_BUILD_MODE:=}"
+# TRAP Caching
+export CODEQL_TRAP_CACHING=1
+export CODEQL_TRAP_CACHING_DIR="${CODEQL_TRAP_CACHING_DIR:=$HOME/.codeql/trap-caching}"
 
 export WORKSPACE="${WORKSPACE:=$PWD}"
 
@@ -55,73 +60,70 @@ elif [[ "${1}" =~ ^(init|analyze|scan|upload) ]]; then
     shift
 fi
 
-# parse other arguments
-for i in "$@"; do
-  case $i in
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+        codeql-scan-help
+        exit 0
+        ;;
     --debug)
         export DEBUG=1
-        shift
         ;;
     -r=*|--repo=*)
-        export GITHUB_REPOSITORY="${i#*=}"
-        shift
+        export GITHUB_REPOSITORY="${1#*=}"
         ;;
     --auto-detect)
         export GITHUB_AUTO_DETECT=1
-        shift
         ;;
     --disable-tracing)
         export CODEQL_TRACING=0
-        shift
         ;;
     --disable-upload)
         export GITHUB_UPLOAD=0
-        shift
         ;;
     --disable-banner)
         export CODEQL_SCAN_BANNER=0
-        shift
         ;;
     -l=*|--language=*)
-        export CODEQL_LANGUAGES="${i#*=}"
-        shift
+        export CODEQL_LANGUAGES="${1#*=}"
         ;;
     -c=*|--command=*)
-        export CODEQL_BUILD_COMMAND="${i#*=}"
+        export CODEQL_BUILD_COMMAND="${1#*=}"
         export CODEQL_TRACING="1"    # enable tracing
-        shift
+        ;;
+    -m=*|--mode=*)
+        export CODEQL_BUILD_MODE="${1#*=}"
         ;;
     -d=*|--databases=*)
-        export CODEQL_DATABASES="${i#*=}"
-        shift
+        export CODEQL_DATABASES="${1#*=}"
         ;;
     -s=*|--suite=*)
-        export CODEQL_SUITE="${i#*=}"
-        shift
+        export CODEQL_SUITE="${1#*=}"
         ;;
     -b=*|--binary=*|--codeql-bin=*)
-        export CODEQL_BINARY="${i#*=}"
-        shift
+        export CODEQL_BINARY="${1#*=}"
         ;;
     -i=*|--instance=*)
-        export GITHUB_INSTANCE="${i#*=}"
-        shift
+        export GITHUB_INSTANCE="${1#*=}"
         ;;
     -w=*|--workspace=*)
-        export WORKSPACE="${i#*=}"
-        shift
+        export WORKSPACE="${1#*=}"
         ;;
     --view-in-vscode)
         export CODEQL_VIEW_IN_VSCODE=1
-        shift
         ;;
-    # -*|--*)
-    #     echo "Unknown option $i"
-    #     exit 1
-    #     ;;
+    --disable-trap-caching)
+        export CODEQL_TRAP_CACHING=0
+        ;;
+    --buildless)
+        export CODEQL_BUILD_MODE="none"
+        ;;
     *)
+        echo "Unknown option $i"
+        exit 1
         ;;
   esac
+  shift
 done
 
 
