@@ -2,35 +2,34 @@
 set -e
 source $EXTENSION_LOCATION/bin/codeql-utils
 
-for i in "$@"; do
-  case $i in
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
     --auto-detect)
         GITHUB_AUTO_DETECT="1"
-        shift
         ;;
     --disable-tracing)
         export CODEQL_TRACING=0
-        shift
         ;;
      -l=*|--language=*)
-        export CODEQL_LANGUAGES="${i#*=}"
-        shift
+        export CODEQL_LANGUAGES="${1#*=}"
         ;;
-    -c="*"|--command="*")
-        export CODEQL_BUILD_COMMAND="${i#*=}"
+    -c=*|--command=*)
+        export CODEQL_BUILD_COMMAND="${1#*=}"
         export CODEQL_TRACING="1"    # enable tracing
-        shift
         ;;
-    --trap-caching)
-        export CODEQL_TRAP_CACHING=1
-        shift
+    -m=*|--mode=*)
+        export CODEQL_BUILD_MODE="${1#*=}"
+        ;;
+    --disable-trap-caching)
+        export CODEQL_TRAP_CACHING=0
         ;;
     *)
         ;;
   esac
+  shift
 done
 
- 
+
 if [ ${GITHUB_UPLOAD} == 0 ] && [ -z ${GITHUB_REPOSITORY+x} ]; then
     # If the repo isn't set 
     export GITHUB_REPOSITORY="$(basename $PWD)"
@@ -66,6 +65,9 @@ if [ -z $CODEQL_LANGUAGES ] ; then
     exit 1
 fi
 
+MEMORY=$(memory)
+info "Memory :: $MEMORY (MB)"
+
 # comma seperated list (`java,javascript`)
 for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
     debug "CodeQL Language :: $CODEQL_LANGUAGE"
@@ -83,9 +85,14 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
     debug "CodeQL Binary :: $CODEQL_BINARY"
     debug "Tracing :: $CODEQL_TRACING"
 
-    CODEQL_CREATE="$CODEQL_BINARY database create -j=0 -M=16000 --language=$CODEQL_LANGUAGE"
+    CODEQL_CREATE="$CODEQL_BINARY"
 
-    if [ "$CODEQL_TRACING" = "1" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
+    if [ "$CODEQL_BUILD_MODE" = "none" ] && [[ "$CODEQL_LANGUAGES" =~ ^(csharp|java)$ ]]; then
+        info "CodeQL build mode is set to none"
+
+        CODEQL_CREATE="$CODEQL_CREATE database init --language=$CODEQL_LANGUAGE --build-mode=none"
+
+    elif [ "$CODEQL_TRACING" = "1" ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]]; then
         debug "Swap to a init command and add --begin-tracing"
 
         # check if the OS is Mac
@@ -95,19 +102,39 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
         fi
 
         # https://codeql.github.com/docs/codeql-cli/creating-codeql-databases/#using-indirect-build-tracing
-        CODEQL_CREATE="$CODEQL_BINARY database init --begin-tracing --language=$CODEQL_LANGUAGE --source-root=$WORKSPACE $CODEQL_DATABASE"
+        CODEQL_CREATE="$CODEQL_CREATE database init --begin-tracing --language=$CODEQL_LANGUAGE"
+
+    elif [[ ! -z $CODEQL_BUILD_COMMAND ]]; then
+        debug "Enabling CodeQL manual build"
+        CODEQL_CREATE="$CODEQL_CREATE --command \"${CODEQL_BUILD_COMMAND}\""
     else
         debug "Append only Database"
         debug "CodeQL auto-build is enabled"
-        CODEQL_CREATE="$CODEQL_CREATE $CODEQL_DATABASE"
+        CODEQL_CREATE="$CODEQL_CREATE database create -j=0 -M=$MEMORY --language=$CODEQL_LANGUAGE"
+    fi
+
+    if [[ ! -z "${WORKSPACE}" ]]; then
+        debug "Setting source-root to workspace"
+        CODEQL_CREATE="$CODEQL_CREATE --source-root=$WORKSPACE"
     fi
 
     # TRAP File caching (C/C++ only for now)
     if [ "$CODEQL_TRAP_CACHING" = "1" ] && [[ "$CODEQL_LANGUAGE" = "cpp" ]]; then
         info "CodeQL TRAP Caching is enabled"
         info "CodeQL TRAP Caching Dir :: $CODEQL_TRAP_CACHING_DIR"
-        CODEQL_CREATE="$CODEQL_CREATE -O=cpp.trap.cache.dir=$CODEQL_TRAP_CACHING_DIR -O=cpp.trap.cache.bound=1024 -O=cpp.trap.cache.write=true"
+    
+        CODEQL_TRAP_CACHING_PROJECT="$CODEQL_TRAP_CACHING_DIR/${CODEQL_LANGUAGE}-${CODEQL_GITHUB_REPOSITORY}"
+        # Make sure the directory exists
+        mkdir -p $CODEQL_TRAP_CACHING_PROJECT
+
+        # Set the environment variable
+        export CODEQL_EXTRACTOR_CPP_TRAP_CACHING=true
+
+        CODEQL_CREATE="$CODEQL_CREATE -O=cpp.trap.cache.dir=$CODEQL_TRAP_CACHING_PROJECT -O=cpp.trap.cache.bound=1024 -O=cpp.trap.cache.write=true"
     fi
+    
+    # Add the database to the command
+    CODEQL_CREATE="$CODEQL_CREATE $CODEQL_DATABASE"
 
     info "Runnning CodeQL database init/create command..."
     debug "CodeQL Create Command :: $CODEQL_CREATE"
@@ -122,7 +149,15 @@ for CODEQL_LANGUAGE in ${CODEQL_LANGUAGES//,/ } ; do
         debug "CodeQL Tracer Languages :: $CODEQL_TRACER_LANGUAGES"
     fi
 
-    if [ ! -z ${CODEQL_BUILD_COMMAND+x} ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]] ; then
+    if [ "$CODEQL_BUILD_MODE" = "none" ] && [[ "$CODEQL_LANGUAGE" =~ ^(csharp|java)$ ]]; then
+        info "Running buildless mode..."
+        
+        $CODEQL_BINARY database trace-command --use-build-mode $CODEQL_DATABASE
+
+        debug "Finalizing CodeQL Database"
+        $CODEQL_BINARY database finalize $CODEQL_DATABASE | true
+
+    elif [ ! -z ${CODEQL_BUILD_COMMAND+x} ] && [[ "$CODEQL_LANGUAGE" =~ ^(cpp|csharp|java|go)$ ]] ; then
         info "Running build command :: '$CODEQL_BUILD_COMMAND'"
 
         eval ${CODEQL_BUILD_COMMAND}

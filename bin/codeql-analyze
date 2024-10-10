@@ -19,10 +19,6 @@ for i in "$@"; do
         CODEQL_ADD_SNIPPETS=""
         shift
         ;;
-    --disable-uploading)
-        GITHUB_UPLOAD=0
-        shift
-        ;;
     -s=*|--suite=*)
         export CODEQL_SUITE="${i#*=}"
         shift
@@ -36,7 +32,7 @@ for i in "$@"; do
   esac
 done
 
-if [ -z $CODEQL_DATABASE_PATHS ]; then
+if [[ -z $CODEQL_DATABASE_PATHS ]]; then
     error "No CodeQL Databases found"
     exit 1
 fi
@@ -55,14 +51,14 @@ for CODEQL_DATABASE in $CODEQL_DATABASE_PATHS ; do
 
     # For tracing
     debug "Finalizing CodeQL Database"
-    $CODEQL_BINARY database finalize $CODEQL_DATABASE 2>/dev/null | true
+    $CODEQL_BINARY database finalize --finalize-dataset $CODEQL_DATABASE 2>/dev/null | true
 
     # The --sarif-category must be set in case of multiple databases
     $CODEQL_BINARY database analyze \
         --format="sarif-latest" \
         --sarif-category="codeql-scan:${CODEQL_LANGUAGE}" \
         --output=$CODEQL_SARIF \
-        -j=0 \
+        -j=0 -M="$(memory)" \
         $CODEQL_ADD_HELP $CODEQL_ADD_SNIPPETS \
         ${CODEQL_DATABASE} ${CODEQL_SUITE}
 
