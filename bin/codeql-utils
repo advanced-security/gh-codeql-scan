@@ -143,7 +143,7 @@ memory() {
     # Get the memory of the system
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # MacOS
-        MEMORY=$(sysctl -n hw.memsize)
+        MEMORY=$(($(sysctl -n hw.memsize) / 1024 / 1024))
     else
         # Linux
         MEMORY=$(free -m | awk 'NR==2{print $2}')
